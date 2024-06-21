@@ -1,0 +1,168 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun 19 11:13:50 2024
+
+@author: blythe Dumerer
+
+This code implements template matching 
+
+a cropped image is matched with larger image to find similar components in the 
+larger image
+
+shapely
+
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage import color
+from skimage.feature import match_template
+import cv2 as cv
+
+class Template_Matching_CroppedImage_toLargerImage:
+    def __init__(self, directory):
+        self.directory = directory
+
+    """Calculates the Intersection over Union (IoU) of two bounding boxes, 
+    which is a measure of how much the boxes overlap. It is used to filter out 
+    overlapping regions"""
+
+    def iou(self, box1, box2):
+        x1, y1, w1, h1 = box1
+        x2, y2, w2, h2 = box2
+        
+        xi1 = max(x1, x2)
+        yi1 = max(y1, y2)
+        xi2 = min(x1 + w1, x2 + w2)
+        yi2 = min(y1 + h1, y2 + h2)
+        
+        inter_width = max(xi2 - xi1, 0)
+        inter_height = max(yi2 - yi1, 0)
+        inter_area = inter_width * inter_height
+        
+        box1_area = w1 * h1
+        box2_area = w2 * h2
+        union_area = box1_area + box2_area - inter_area
+        
+        return inter_area / union_area
+
+    """Filtering out the overlapping boxes based on the threshold"""
+
+    def filter_overlapping_boxes(self, boxes, threshold=0.1):
+        filtered_boxes = []
+        for box in boxes:
+            if all(self.iou(box, filtered_box) < threshold for filtered_box in filtered_boxes):
+                filtered_boxes.append(box)
+        return filtered_boxes
+
+    """The main template matching function and parameters that are needed to be defined"""
+
+    def MultipleMatch(self, yrange_Straight1=None, yrange_Straight2=None,
+                      xrange_Straight1=None, xrange_Straight2=None, 
+                      yrange_Curled1=None, yrange_Curled2=None,
+                      xrange_Curled1=None, xrange_Curled2=None, threshold=None):
+        image_path = self.directory
+
+        # Load the image
+        try:
+            image = np.load(image_path)
+        except FileNotFoundError:
+            print(f"File not found: {image_path}")
+            raise
+        except Exception as e:
+            print(f"Error loading image: {e}")
+            raise
+    
+        if image.ndim == 3 and image.shape[-1] == 4:  # Check for RGBA
+            image = image[..., :3]  # Remove the alpha channel
+    
+        if image.ndim == 3:
+            gray_image = color.rgb2gray(image)
+        else:
+            gray_image = image
+    
+        if gray_image.ndim != 2:
+            print("Error: Grayscale image is not 2D")
+            raise ValueError("Grayscale image is not 2D")
+    
+        def extract_template(yrange1, yrange2, xrange1, xrange2):
+            try:
+                return gray_image[yrange1:yrange2, xrange1:xrange2]
+            except IndexError:
+                print("Error: The subregion indices are out of bounds for the image")
+                raise
+    
+        # Extract templates
+        straight_templates = [extract_template(y1, y2, x1, x2) 
+                              for y1, y2, x1, x2 in zip(yrange_Straight1, yrange_Straight2, 
+                                                        xrange_Straight1, xrange_Straight2)]
+        curled_templates = [extract_template(y1, y2, x1, x2) 
+                            for y1, y2, x1, x2 in zip(yrange_Curled1, yrange_Curled2, 
+                                                      xrange_Curled1, xrange_Curled2)]
+    
+        """ Matches the image and filters the results to produce plots showing the template,
+        image to be matched with and the resulting matched areas after filtering"""
+        def match_and_plot(templates, template_name):
+            all_boxes = []
+            for template in templates:
+                if template.ndim != 2:
+                    print(f"Error: Template ({template_name}) is not 2D")
+                    raise ValueError(f"Template ({template_name}) is not 2D")
+                result = match_template(gray_image, template)
+                match_locations = np.where(result >= threshold)
+                
+                boxes = [(x, y, template.shape[1], template.shape[0]) for (y, x) in zip(*match_locations)]
+                all_boxes.extend(boxes)
+    
+            filtered_boxes = self.filter_overlapping_boxes(all_boxes)
+            
+            fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+            
+            for i, template in enumerate(templates):
+                axs[i // 2, i % 2].imshow(template, cmap=plt.cm.gray)
+                axs[i // 2, i % 2].set_axis_off()
+                axs[i // 2, i % 2].set_title(f'{template_name} Template {i+1}')
+    
+            axs[1, 0].imshow(gray_image, cmap=plt.cm.gray)
+            axs[1, 0].set_axis_off()
+            axs[1, 0].set_title('Image')
+    
+            for (x, y, w, h) in filtered_boxes:
+                rect = plt.Rectangle((x, y), w, h, edgecolor='r', facecolor='none')
+                axs[1, 0].add_patch(rect)
+                    
+    # # Extract and display each matched region this will allow you to check the 
+    # #accuracy of the bounding box Uncomment as needed
+    #                 matched_region = gray_image[y:y+h, x:x+w]
+    #                 plt.figure()
+    #                 plt.imshow(matched_region, cmap=plt.cm.gray)
+    #                 plt.title(f"Matched region at x={x}, y={y}")
+    #                 plt.axis('off')
+    #                 plt.show()
+        
+            result = match_template(gray_image, templates[0])
+            match_locations = np.where(result >= threshold)
+            axs[1, 1].imshow(result)
+            axs[1, 1].set_axis_off()
+            axs[1, 1].set_title('`match_template`\nResult')
+            axs[1, 1].autoscale(False)
+            axs[1, 1].plot(match_locations[1], match_locations[0], 'o', markeredgecolor='r', 
+                           markerfacecolor='none', markersize=10)
+                
+            plt.show()
+    
+        # Match and plot results for Straight templates
+        match_and_plot(straight_templates, 'Straight')
+        # Match and plot results for Curled templates
+        match_and_plot(curled_templates, 'Curled')
+
+# Define the image path use .npy files
+
+# Instantiate the Template_Matching_CroppedImage_toLargerImage class
+matcher = Template_Matching_CroppedImage_toLargerImage(directory = 
+r'C:\Users\blyth\Documents\OR\python_flatten\file18.npy')
+matcher.MultipleMatch( 
+yrange_Straight1=[125, 87], yrange_Straight2=[149, 126], 
+xrange_Straight1=[535, 884], xrange_Straight2=[568, 900], 
+yrange_Curled1=[108, 416], yrange_Curled2=[130, 442], 
+xrange_Curled1=[600, 743], xrange_Curled2=[650, 771], 
+threshold=0.3)
