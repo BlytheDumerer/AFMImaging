@@ -173,19 +173,19 @@ class Template_Matching_CroppedImage_toLargerImage:
         all_boxes = straight_boxes + curled_boxes
         class_ids = [0] * len(straight_boxes) + [1] * len(curled_boxes)
     
-        def save_yolo_annotations(bboxes, img_width, img_height, class_ids, image_file):
+        def save_yolo_annotations(bboxes, img_width, img_height, class_ids, i):
             annotations = []
             for bbox, class_id in zip(bboxes, class_ids):
                 yolo_format = convert_to_yolo_format(bbox, img_width, img_height, class_id)
                 annotations.append(yolo_format)
-        
-            output_annotations_file = os.path.join(self.annotation_directory, f'annotations_{os.path.basename(image_file)}.txt')
+
+            output_annotations_file = os.path.join(self.annotation_directory, f'annotations{i}.txt')
             with open(output_annotations_file, 'w') as f:
                 for annotation in annotations:
                     f.write(annotation + '\n')
 
-        save_yolo_annotations(all_boxes, gray_image.shape[1], gray_image.shape[0], class_ids, image_file)
-
+        save_yolo_annotations(all_boxes, gray_image.shape[1], gray_image.shape[0], class_ids, i)
+        
     def load_templates(self):
         try:
             image = np.load(os.path.join(self.template_directory, 'file18.npy'))
@@ -259,12 +259,12 @@ class Template_Matching_CroppedImage_toLargerImage:
 
 
 # Instantiate the Template_Matching_CroppedImage_toLargerImage class
-template_directory = r'C:\Users\blyth\Documents\OR\python_flatten'
-image_directory_pattern = r'C:\Users\blyth\Documents\OR\python_flatten\file{}.npy'
+template_directory = r'C:\Users\Documents\OR\python_flatten'
+image_directory_pattern = r'C:\Users\Documents\OR\python_flatten\file{}.npy'
 split_files = [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]  # select which files you want for validation and remove them from this list
-train_path_pattern = r'C:\Users\blyth\Documents\OR\Yolo_Files\train\labels\train_files{}.txt'  # pattern for train file paths
-test_path_pattern = r'C:\Users\blyth\Documents\OR\Yolo_Files\test\labels\test_files{}.txt'  # pattern for test file paths
-annotation_directory = r'C:\Users\blyth\Documents\OR\Yolo_Files\annotations'  # location of where you want the annotation files
+train_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\train\labels\train_files{}.txt'  # pattern for train file paths
+test_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\test\labels\test_files{}.txt'  # pattern for test file paths
+annotation_directory = r'C:\Users\Documents\OR\Yolo_Files\annotations'  # location of where you want the annotation files
 
 # Loop through split_files and process each file
 for i in split_files:
