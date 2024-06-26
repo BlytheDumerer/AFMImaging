@@ -262,8 +262,8 @@ class Template_Matching_CroppedImage_toLargerImage:
 template_directory = r'C:\Users\Documents\OR\python_flatten'
 image_directory_pattern = r'C:\Users\Documents\OR\python_flatten\file{}.npy'
 split_files = [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]  # select which files you want for validation and remove them from this list
-train_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\train\labels\train_files{}.txt'  # pattern for train file paths
-test_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\test\labels\test_files{}.txt'  # pattern for test file paths
+train_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\train\labels\file{}.txt'  # pattern for train file paths
+test_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\test\labels\file{}.txt'  # pattern for test file paths
 annotation_directory = r'C:\Users\Documents\OR\Yolo_Files\annotations'  # location of where you want the annotation files
 
 # Loop through split_files and process each file
