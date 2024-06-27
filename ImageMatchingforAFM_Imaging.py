@@ -19,10 +19,11 @@ import os
 from sklearn.model_selection import train_test_split
 
 class Template_Matching_CroppedImage_toLargerImage:
-    def __init__(self, template_directory, image_directory_pattern, annotation_directory):
+    def __init__(self, template_directory, image_directory_pattern, annotation_directory,gray_directory):
         self.template_directory = template_directory
         self.image_directory_pattern = image_directory_pattern
         self.annotation_directory = annotation_directory
+        self.gray_directory = gray_directory
         self.straight_templates = None
         self.curled_templates = None
         self.load_templates()
@@ -82,6 +83,11 @@ class Template_Matching_CroppedImage_toLargerImage:
         if gray_image.ndim != 2:
             print("Error: Grayscale image is not 2D")
             raise ValueError("Grayscale image is not 2D")
+            
+        # Save the gray_image
+        gray_image_filename = f'gray_image{os.path.basename(image_file)}.png'
+        gray_image_path = os.path.join(self.gray_directory, gray_image_filename)
+        imageio.imwrite(gray_image_path, gray_image)
             
         def extract_template(yrange1, yrange2, xrange1, xrange2):
             try:
@@ -259,17 +265,18 @@ class Template_Matching_CroppedImage_toLargerImage:
 
 
 # Instantiate the Template_Matching_CroppedImage_toLargerImage class
-template_directory = r'C:\Users\Documents\OR\python_flatten'
-image_directory_pattern = r'C:\Users\Documents\OR\python_flatten\file{}.npy'
+template_directory = r'C:\Users\blyth\Documents\OR\python_flatten'
+image_directory_pattern = r'C:\Users\blyth\Documents\OR\python_flatten\file{}.npy'
 split_files = [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]  # select which files you want for validation and remove them from this list
-train_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\train\labels\file{}.txt'  # pattern for train file paths
-test_path_pattern = r'C:\Users\Documents\OR\Yolo_Files\test\labels\file{}.txt'  # pattern for test file paths
-annotation_directory = r'C:\Users\Documents\OR\Yolo_Files\annotations'  # location of where you want the annotation files
+train_path_pattern = r'C:\Users\blyth\Documents\OR\Yolo_Files\train\labels\file{}.txt'  # pattern for train file paths
+test_path_pattern = r'C:\Users\blyth\Documents\OR\Yolo_Files\test\labels\file{}.txt'  # pattern for test file paths
+annotation_directory = r'C:\Users\blyth\Documents\OR\Yolo_Files\annotations'  # location of where you want the annotation files
+gray_directory = r'C:\Users\blyth\Documents\OR\gray_files' #location for gray_files
 
 # Loop through split_files and process each file
 for i in split_files:
     image_file = image_directory_pattern.format(i)
-    matcher = Template_Matching_CroppedImage_toLargerImage(template_directory, image_file, annotation_directory)
+    matcher = Template_Matching_CroppedImage_toLargerImage(template_directory, image_file, annotation_directory, gray_directory)
     matcher.split_annotations(i, train_path_pattern, test_path_pattern)
     matcher.MultipleMatch(image_file, threshold=0.3)
 
