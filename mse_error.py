@@ -1,0 +1,113 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jun 13 16:23:32 2024
+
+@author: Blythe Dumerer
+
+Compare Gwyddion and python flattened images
+
+"""
+import gwyfile
+import os
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2
+import numpy as np
+from skimage.metrics import mean_squared_error
+from skimage.io import imread
+from skimage.transform import resize
+
+# Load the images to compare only gwyddion and numpy files
+directory1 = r'C:\Users\Documents\OR\gwyddion_flat' # Gwyddion Data = "Truth"
+directory = r'C:\Users\Documents\OR\python_flatten' # Python Data
+
+
+for B in range(1, 19): # change as needed
+    file_name1 = f'file{B}.gwy'  #Flile naming convention = file1.gwy,...
+    file_name2 = f'file{B}.npy'  #Flile naming convention = file1.npy,...
+    
+    input_file_path = os.path.join(directory1, file_name1) #paths
+    py_directory = os.path.join(directory, file_name2)
+    
+    gwy_data = gwyfile.load(input_file_path)
+    #gwy_data
+    my_obj = '/0/data'
+    data = gwy_data[my_obj].data *1E9 #get it to nm
+    #data.shape
+    # %matplotlib inline the same as show
+    
+    
+    # Print the structure to understand the contents
+    print(gwy_data)
+    
+    # Extract the datafield from the container
+    datafield = gwy_data['/0/data']
+    
+    # Get the actual numerical data
+    data_array = datafield.data
+    
+    # Ensure the data is a NumPy array with the correct type
+    data_array = np.array(data_array, dtype=np.float32)
+    
+    #For now we will normalize the dataset until Brukerreader converts to nm for the npy files
+    #Delete the line below when fixed
+    data_array = (data_array - np.min(data_array)) / (np.max(data_array) - np.min(data_array))
+    
+    # Inspect the data
+    #print("Data shape:", data_array.shape)
+    #print("Data range: min =", np.min(data_array), ", max =", np.max(data_array))
+    #print("Data mean:", np.mean(data_array))
+    #print("Data standard deviation:", np.std(data_array))
+    
+    # Determine appropriate vmin and vmax based on the data range
+    vmin = np.min(data_array)
+    vmax = np.max(data_array)
+    
+    # Display the result
+    plt.figure(1)
+    plt.imshow(data_array, cmap='viridis')
+    plt.colorbar()
+    plt.savefig('result_plot2.png', bbox_inches='tight', pad_inches=0)
+    #plt.show()
+    plt.close()  # Close the figure without displaying it
+    
+    #load a npy file
+    py_img = np.load(py_directory)
+    
+    #For now we will normalize the dataset until Brukerreader converts to nm for the npy files
+    #Delete the line below after
+    py_img = (py_img - np.min(py_img)) / (np.max(py_img) - np.min(py_img))
+    
+    # Display the result
+    plt.figure(2)
+    plt.imshow(py_img, cmap='viridis')
+    plt.colorbar()
+    plt.savefig('result_plot1.png', bbox_inches='tight', pad_inches=0)
+    #plt.show()
+    plt.close()  # Close the figure without displaying it
+    
+    #Check the loaded data files
+    #py_img
+    #py_directoryraw = r'C:\Users\blyth\Documents\OR\python_flatten\raw2.npy' # Python Data = "Truth"
+    #py_raw = np.load(py_directoryraw)
+    #py_raw
+    
+    # Calculate the mean squared error (MSE)
+    mse = mean_squared_error(data_array, py_img)
+    print("Mean Squared Error (MSE):", mse)
+    
+    result = []
+    for i in range(1, len(py_img)):
+        result.append(py_img[i] - data_array[i])
+    #print(result)
+    
+    J = 0
+    plt.plot(py_img[J] - data_array[J])
+    plt.plot(py_img[J])
+    plt.plot(data_array[J])
+    plt.legend(['Difference', 'Python Flatened Image', 'Gwyddion Flattened Image']) 
+    plt.title((f'File {B}'))
+    plt.show()
+
+
